@@ -79,25 +79,28 @@ const allCarts = JSON.parse(localStorage.getItem('paypal-cr-cart') || '{}');
 export const Tracker = (config : Config) => ({
     view:           (data : { pageUrl : string }) => track(config, 'view', data),
     addToCart:      (data : Cart) => {
-        const cart = (allCarts[data.cartId] || { 'items': [], 'price': 0 });
-        data.items = (data.items || []).concat(cart.items);
-        data.price += (cart.price || 0);
-        allCarts[(data.cartId || 0)] = data;
+        const cart = (allCarts || { 'items': [], 'price': 0 });
+        cart.items = (cart.items || []).concat(data.items);
+        cart.price += (data.price || 0);
+        allCarts = cart;
 
-        localStorage.setItem('paypal-cr-cart', JSON.stringify(data));
-        trackCartEvent(config, 'setCart', data);
+        localStorage.setItem('paypal-cr-cart', JSON.stringify(cart));
+        trackCartEvent(config, 'setCart', cart);
     },
     setCart:        (data : Cart) => trackCartEvent(config, 'setCart', data),
     removeFromCart: (data : Cart) => {
-        const cart = allCarts[(data.cartId)];
-        data.items = (data.items || []).filter(item => !(cart.items).includes(item));
+        const cart = allCarts;
+        cart.items = cart.items.filter(cartItem => {
+            const itemToRemove = data.items.find(x => x.id === cartItem.id);
+            return !itemToRemove || cartItem.id !== itemToRemove.id;
+        });
         if (data.price) {
-            data.price -= (cart.price || 0);
+            cart.price -= (data.price || 0);
         }
-        allCarts[(data.cartId || 0)] = data;
+        allCarts = cart;
 
-        localStorage.setItem('paypal-cr-cart', JSON.stringify(data));
-        trackCartEvent(config, 'setCart', data);
+        localStorage.setItem('paypal-cr-cart', JSON.stringify(cart));
+        trackCartEvent(config, 'setCart', cart);
     },
     purchase:       (data : { cartId : string }) => track(config, 'purchase', data),
     setUser:        (data : { user : { id : string, name? : string, email? : string } }) => {
