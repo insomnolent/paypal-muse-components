@@ -74,22 +74,22 @@ const track = <T>(config : Config, trackingType : TrackingType, trackingData : T
 const trackCartEvent = <T>(config : Config, cartEventType : CartEventType, trackingData : T) : Promise<void> =>
     track(config, 'cartEvent', { ...trackingData, cartEventType });
 
-const allCarts = JSON.parse(localStorage.getItem('paypal-cr-cart') || '{}');
+const currentCart = JSON.parse(localStorage.getItem('paypal-cr-cart') || '{}');
 
 export const Tracker = (config : Config) => ({
     view:           (data : { pageUrl : string }) => track(config, 'view', data),
     addToCart:      (data : Cart) => {
-        const cart = (allCarts || { 'items': [], 'price': 0 });
+        const cart = (currentCart || { 'items': [], 'price': 0 });
         cart.items = (cart.items || []).concat(data.items);
         cart.price += (data.price || 0);
-        allCarts = cart;
+        currentCart = cart;
 
         localStorage.setItem('paypal-cr-cart', JSON.stringify(cart));
         trackCartEvent(config, 'setCart', cart);
     },
     setCart:        (data : Cart) => trackCartEvent(config, 'setCart', data),
     removeFromCart: (data : Cart) => {
-        const cart = allCarts;
+        const cart = currentCart;
         cart.items = cart.items.filter(cartItem => {
             const itemToRemove = data.items.find(x => x.id === cartItem.id);
             return !itemToRemove || cartItem.id !== itemToRemove.id;
@@ -97,7 +97,7 @@ export const Tracker = (config : Config) => ({
         if (data.price) {
             cart.price -= (data.price || 0);
         }
-        allCarts = cart;
+        currentCart = cart;
 
         localStorage.setItem('paypal-cr-cart', JSON.stringify(cart));
         trackCartEvent(config, 'setCart', cart);
